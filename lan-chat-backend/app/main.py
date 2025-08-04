@@ -24,7 +24,9 @@ app.add_middleware(
     allow_origins=[
         "*",
         "https://whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
-        "https://user:aa664ea8bc79047133f07f523e3fecfd@whatsapp-clone-app-tunnel-xed1t5va.devinapps.com"
+        "https://user:aa664ea8bc79047133f07f523e3fecfd@whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
+        "https://whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com",
+        "https://user:542a1315d743e3d48561f2623ddf8aef@whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com"
     ],  # Allows all origins plus specific frontend URLs
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
