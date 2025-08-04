@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -583,11 +583,23 @@ function App() {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-green-600">Local Chat</CardTitle>
-            <CardDescription>Secure team communication</CardDescription>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
+          <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-10 right-10 w-28 h-28 bg-white/10 rounded-full blur-xl"></div>
+        </div>
+        <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-white/95 shadow-2xl border-0">
+          <CardHeader className="text-center pb-2">
+            <div className="flex justify-center mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+                <MessageCircle className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Local Chat</CardTitle>
+            <CardDescription className="text-gray-600 font-medium">Secure team communication</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -647,11 +659,23 @@ function App() {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-green-600">Register</CardTitle>
-            <CardDescription>Request access to Local Chat</CardDescription>
+      <div className="min-h-screen bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-white/5 rounded-full blur-lg"></div>
+          <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-10 right-10 w-28 h-28 bg-white/10 rounded-full blur-xl"></div>
+        </div>
+        <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-white/95 shadow-2xl border-0">
+          <CardHeader className="text-center pb-2">
+            <div className="flex justify-center mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+                <MessageCircle className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Register</CardTitle>
+            <CardDescription className="text-gray-600 font-medium">Request access to Local Chat</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -1111,11 +1135,13 @@ function App() {
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gray-50">
             <div className="text-center">
-              <div className="w-32 h-32 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                <Users className="w-16 h-16 text-green-500" />
+              <div className="w-40 h-40 mx-auto mb-6 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl flex items-center justify-center shadow-lg transform rotate-3">
+                <div className="w-32 h-32 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-3">
+                  <MessageCircle className="w-16 h-16 text-white" />
+                </div>
               </div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Welcome to Local Chat</h2>
-              <p className="text-gray-500">Select a chat to start messaging</p>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">Welcome to Local Chat</h2>
+              <p className="text-gray-600 text-lg">Select a chat to start messaging</p>
             </div>
           </div>
         )}
