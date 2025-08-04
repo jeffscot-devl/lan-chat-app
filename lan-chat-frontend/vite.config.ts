@@ -13,7 +13,7 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     cors: true,
-    allowedHosts: ['whatsapp-clone-app-tunnel-gs5rk3s0.devinapps.com'],
+    allowedHosts: ['whatsapp-clone-app-tunnel-vbu8w3aq.devinapps.com'],
     hmr: {
       clientPort: 5173
     }
