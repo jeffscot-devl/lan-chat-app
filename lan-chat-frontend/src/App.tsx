@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -86,6 +86,7 @@ function App() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messageCache, setMessageCache] = useState<{[key: string]: Message[]}>({});
   const [newMessage, setNewMessage] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
@@ -98,7 +99,8 @@ function App() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showAddContact, setShowAddContact] = useState(false);
-  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -106,6 +108,7 @@ function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
   const login = async (username: string, password: string) => {
     try {
@@ -193,10 +196,18 @@ function App() {
 
   const loadMessages = async (chatId: number, isGroup: boolean) => {
     try {
+      const cacheKey = `${isGroup ? 'group' : 'user'}_${chatId}`;
+      
+      if (messageCache[cacheKey]) {
+        setMessages(messageCache[cacheKey]);
+        return;
+      }
+
       const response = await fetchWithAuth(`${API_URL}/api/chats/${chatId}/messages?is_group=${isGroup}`);
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
+        setMessageCache(prev => ({ ...prev, [cacheKey]: data }));
       }
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -220,7 +231,10 @@ function App() {
 
       if (response.ok) {
         const newMsg = await response.json();
-        setMessages(prev => [...prev, newMsg]);
+        const cacheKey = `${selectedChat.is_group ? 'group' : 'user'}_${selectedChat.id}`;
+        const updatedMessages = [...messages, newMsg];
+        setMessages(updatedMessages);
+        setMessageCache(prev => ({ ...prev, [cacheKey]: updatedMessages }));
         setNewMessage('');
         loadChats(); // Refresh chat list
       }
@@ -317,7 +331,7 @@ function App() {
       
       if (response.ok) {
         toast.success('User created successfully!');
-        setShowCreateUser(false);
+        setShowAdminPanel(false);
         loadUsers();
       } else {
         const error = await response.json();
@@ -501,6 +515,32 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showEmojiPicker && emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEmojiPicker]);
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -546,7 +586,7 @@ function App() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-green-600">LAN Chat</CardTitle>
+            <CardTitle className="text-2xl font-bold text-green-600">Local Chat</CardTitle>
             <CardDescription>Secure team communication</CardDescription>
           </CardHeader>
           <CardContent>
@@ -611,7 +651,7 @@ function App() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-green-600">Register</CardTitle>
-            <CardDescription>Request access to LAN Chat</CardDescription>
+            <CardDescription>Request access to Local Chat</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -689,60 +729,103 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 text-white">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Mobile Header */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-4 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Avatar>
-                <AvatarImage src={currentUser?.avatar_url} />
-                <AvatarFallback className="bg-green-700 text-white">
-                  {currentUser?.full_name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="font-semibold">{currentUser?.full_name}</h2>
-                <p className="text-xs text-green-100">@{currentUser?.username}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="text-white hover:bg-white/20 p-2"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-sm font-bold">LC</span>
+                </div>
+                <h1 className="text-lg font-bold">Local Chat</h1>
               </div>
             </div>
-            <div className="flex space-x-2">
-              {currentUser?.is_admin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="text-white hover:bg-white/20 p-2"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar */}
+      <div className={`${isMobile ? 'fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out' : 'relative'} ${
+        isMobile && !sidebarOpen ? '-translate-x-full' : 'translate-x-0'
+      } ${isMobile ? 'w-80' : 'w-80'} bg-white border-r border-gray-200 flex flex-col shadow-xl`}>
+        {/* Header */}
+        <div className={`bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-4 text-white shadow-lg ${isMobile ? 'mt-16' : ''}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Avatar className="ring-2 ring-white/30">
+                  <AvatarImage src={currentUser?.avatar_url} />
+                  <AvatarFallback className="bg-gradient-to-br from-emerald-600 to-teal-600 text-white font-bold">
+                    {currentUser?.full_name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full"></div>
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">{currentUser?.full_name}</h2>
+                <p className="text-xs text-emerald-100">@{currentUser?.username}</p>
+              </div>
+            </div>
+            {!isMobile && (
+              <div className="flex space-x-1">
+                {currentUser?.is_admin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAdminPanel(true)}
+                    className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2"
+                    title="Admin Panel"
+                  >
+                    <Shield className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowAdminPanel(true)}
-                  className="text-white hover:bg-green-600"
+                  onClick={() => setShowAddContact(true)}
+                  className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2"
+                  title="Add Contact"
                 >
-                  <Shield className="w-4 h-4" />
+                  <UserPlus className="w-4 h-4" />
                 </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAddContact(true)}
-                className="text-white hover:bg-green-600"
-              >
-                <UserPlus className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCreateGroup(true)}
-                className="text-white hover:bg-green-600"
-              >
-                <Users className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={logout}
-                className="text-white hover:bg-green-600"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCreateGroup(true)}
+                  className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2"
+                  title="Create Group"
+                >
+                  <Users className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  className="text-white hover:bg-red-500/20 transition-all duration-200 rounded-lg p-2 border border-white/20"
+                  title="Logout"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -815,7 +898,7 @@ function App() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${isMobile && sidebarOpen ? 'hidden' : ''}`}>
         {selectedChat ? (
           <>
             {/* Chat Header */}
@@ -1031,7 +1114,7 @@ function App() {
               <div className="w-32 h-32 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
                 <Users className="w-16 h-16 text-green-500" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-700 mb-2">Welcome to LAN Chat</h2>
+              <h2 className="text-xl font-semibold text-gray-700 mb-2">Welcome to Local Chat</h2>
               <p className="text-gray-500">Select a chat to start messaging</p>
             </div>
           </div>
@@ -1319,6 +1402,14 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 }
