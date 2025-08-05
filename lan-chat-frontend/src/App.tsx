@@ -347,6 +347,28 @@ function App() {
       toast.error('Network error creating user');
     }
   };
+  
+  const deleteUser = async (userId: number) => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/admin/delete-user/${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        toast.success('User deleted successfully!');
+        loadUsers();
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Failed to delete user');
+      }
+    } catch (error) {
+      toast.error('Failed to delete user');
+    }
+  };
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -691,7 +713,18 @@ function App() {
               </Button>
             </form>
             <div className="mt-4 text-center">
-              <Button variant="link" onClick={() => setShowRegister(true)}>
+              <Button 
+                variant="link" 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Register button clicked');
+                  setShowRegister(true);
+                  setShowLogin(false);
+                }}
+                className="text-emerald-600 hover:text-emerald-700"
+              >
                 Need an account? Register here
               </Button>
             </div>
@@ -797,7 +830,10 @@ function App() {
               </Button>
             </form>
             <div className="mt-4 text-center">
-              <Button variant="link" onClick={() => setShowRegister(false)}>
+              <Button variant="link" onClick={() => {
+                setShowRegister(false);
+                setShowLogin(true);
+              }}>
                 Back to Login
               </Button>
             </div>
@@ -936,11 +972,6 @@ function App() {
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium text-gray-900 truncate">{chat.name}</h3>
                       <div className="flex items-center space-x-1">
-                        {chat.last_message_time && (
-                          <span className="text-xs text-gray-500">
-                            {formatTime(chat.last_message_time)}
-                          </span>
-                        )}
                         {chat.unread_count > 0 && (
                           <Badge className="bg-green-500 text-white text-xs px-2 py-1 rounded-full min-w-[20px] h-5 flex items-center justify-center">
                             {chat.unread_count}
@@ -952,18 +983,9 @@ function App() {
                       <p className="text-sm text-gray-600 truncate flex-1 mr-2">
                         {chat.last_message || 'No messages yet'}
                       </p>
-                      <div className="flex flex-col items-end space-y-1">
-                        {chat.last_message_time && (
-                          <span className="text-xs text-gray-500 font-medium">
-                            {formatTime(chat.last_message_time)}
-                          </span>
-                        )}
-                        {!chat.is_group && !chat.is_online && chat.last_seen && (
-                          <span className="text-xs text-gray-400">
-                            {formatLastSeen(chat.last_seen)}
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-xs text-gray-500 font-medium">
+                        {chat.last_message_time && formatTime(chat.last_message_time)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1062,13 +1084,30 @@ function App() {
             {/* Messages */}
             <ScrollArea className="flex-1 p-4 bg-gradient-to-b from-gray-50 to-gray-100">
               <div className="space-y-4">
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
+                {(() => {
+                  const elements: React.ReactNode[] = [];
+                  
+                  messages.forEach((message, index) => {
+                    const messageDate = new Date(message.created_at).toDateString();
+                    const prevMessageDate = index > 0 ? new Date(messages[index - 1].created_at).toDateString() : null;
+                    
+                    if (messageDate !== prevMessageDate) {
+                      elements.push(
+                        <div key={`date-${messageDate}`} className="flex justify-center my-4">
+                          <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                            {messageDate === new Date().toDateString() ? 'Today' : new Date(messageDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      );
+                    }
+                    
+                    elements.push(
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.sender_id === currentUser?.id ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
                     <div className="group relative">
                       <div
                         className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-md transition-all duration-200 hover:shadow-lg ${
@@ -1087,7 +1126,7 @@ function App() {
                           <div className="space-y-2">
                             {message.file_name && message.file_id ? (
                               <>
-                                {/\.(jpg|jpeg|png|gif|webp)$/i.test(message.file_name) ? (
+                                {/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(message.file_name) ? (
                                   <div className="max-w-xs">
                                     <img 
                                       src={`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`}
@@ -1187,7 +1226,11 @@ function App() {
                       </div>
                     </div>
                   </div>
-                ))}
+                    );
+                  });
+                  
+                  return elements;
+                })()}
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -1389,6 +1432,16 @@ function App() {
                             </Badge>
                           </div>
                         </div>
+                        {!user.is_admin && (
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => deleteUser(user.id)}
+                            className="ml-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

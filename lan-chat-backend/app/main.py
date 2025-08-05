@@ -21,21 +21,10 @@ app = FastAPI(title="LAN Chat Application", version="1.0.0")
 # Disable CORS. Do not remove this for full-stack development.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "*",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "https://whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
-        "https://user:aa664ea8bc79047133f07f523e3fecfd@whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
-        "https://whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com",
-        "https://user:542a1315d743e3d48561f2623ddf8aef@whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com",
-        "https://user:1ef021e101e682bbc042edcfe5c33fc4@whatsapp-clone-app-tunnel-jmpvez7f.devinapps.com",
-        "https://whatsapp-clone-app-tunnel-5k08ynlw.devinapps.com",
-        "https://user:d5a35ba169cc8f9ebdd2c21c1af58f28@whatsapp-clone-app-tunnel-5k08ynlw.devinapps.com"
-    ],  # Allow all origins plus specific frontend URLs
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
 )
 
 @app.on_event("startup")
@@ -531,6 +520,8 @@ async def send_message(message_data: MessageCreate, current_user: User = Depends
                 "group_id": message_data.group_id,
                 "content": message_data.content,
                 "message_type": message_data.message_type,
+                "file_id": new_message.file_id,
+                "file_name": new_message.file_name,
                 "created_at": new_message.created_at.isoformat()
             }
         }
@@ -583,6 +574,8 @@ async def send_message(message_data: MessageCreate, current_user: User = Depends
                 "recipient_id": message_data.recipient_id,
                 "content": message_data.content,
                 "message_type": message_data.message_type,
+                "file_id": new_message.file_id,
+                "file_name": new_message.file_name,
                 "created_at": new_message.created_at.isoformat()
             }
         }
@@ -812,6 +805,25 @@ async def delete_chat(chat_id: int, is_group: bool = False, current_user: User =
     
     db.commit()
     return {"message": "Chat deleted successfully"}
+
+@app.delete("/api/admin/delete-user/{user_id}")
+async def delete_user_endpoint(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    if not user_to_delete:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if user_to_delete.is_admin:
+        raise HTTPException(status_code=400, detail="Cannot delete admin users")
+    
+    db.query(Message).filter(Message.sender_id == user_id).delete()
+    
+    db.delete(user_to_delete)
+    db.commit()
+    
+    return {"message": "User deleted successfully"}
 
 @app.get("/healthz")
 async def healthz():

@@ -17,7 +17,8 @@ export default defineConfig({
       'whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com', 
       'whatsapp-clone-app-tunnel-1auvqhmn.devinapps.com', 
       'whatsapp-clone-app-tunnel-5k08ynlw.devinapps.com',
-      'whatsapp-clone-app-tunnel-0vwc0glm.devinapps.com'
+      'whatsapp-clone-app-tunnel-0vwc0glm.devinapps.com',
+      'whatsapp-clone-app-tunnel-gvvhtevs.devinapps.com'
     ],
     hmr: {
       clientPort: 5173
