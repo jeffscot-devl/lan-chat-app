@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu, MessageCircle } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu, MessageCircle, Trash2, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import './App.css';
 
@@ -208,9 +209,12 @@ function App() {
         const data = await response.json();
         setMessages(data);
         setMessageCache(prev => ({ ...prev, [cacheKey]: data }));
+      } else {
+        setMessages([]);
       }
     } catch (error) {
       console.error('Error loading messages:', error);
+      setMessages([]);
     }
   };
 
@@ -414,6 +418,63 @@ function App() {
   const insertEmoji = (emoji: string) => {
     setNewMessage(prev => prev + emoji);
     setShowEmojiPicker(false);
+  };
+
+  const deleteMessage = async (messageId: number) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/messages/${messageId}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
+        const cacheKey = `${selectedChat?.is_group ? 'group' : 'user'}_${selectedChat?.id}`;
+        setMessageCache(prev => ({
+          ...prev,
+          [cacheKey]: prev[cacheKey]?.filter(msg => msg.id !== messageId) || []
+        }));
+        toast.success('Message deleted');
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
+    }
+  };
+
+  const archiveChat = async (chatId: number, isGroup: boolean) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/chats/${chatId}/archive?is_group=${isGroup}`, {
+        method: 'PUT',
+      });
+      
+      if (response.ok) {
+        toast.success('Chat archived');
+        loadChats();
+      }
+    } catch (error) {
+      console.error('Error archiving chat:', error);
+      toast.error('Failed to archive chat');
+    }
+  };
+
+  const deleteChat = async (chatId: number, isGroup: boolean) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/chats/${chatId}?is_group=${isGroup}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setChats(prev => prev.filter(chat => chat.id !== chatId));
+        if (selectedChat?.id === chatId) {
+          setSelectedChat(null);
+          setMessages([]);
+        }
+        toast.success('Chat deleted');
+      }
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast.error('Failed to delete chat');
+    }
   };
 
   const connectWebSocket = () => {
@@ -774,14 +835,6 @@ function App() {
                 <h1 className="text-lg font-bold">Local Chat</h1>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={logout}
-              className="text-white hover:bg-white/20 p-2"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
           </div>
         </div>
       )}
@@ -839,15 +892,6 @@ function App() {
                 >
                   <Users className="w-4 h-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={logout}
-                  className="text-white hover:bg-red-500/20 transition-all duration-200 rounded-lg p-2 border border-white/20"
-                  title="Logout"
-                >
-                  <LogOut className="w-4 h-4" />
-                </Button>
               </div>
             )}
           </div>
@@ -870,12 +914,11 @@ function App() {
             {chats.map((chat) => (
               <div
                 key={chat.id}
-                className={`p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                className={`group p-3 hover:bg-gray-50 cursor-pointer transition-colors relative ${
                   selectedChat?.id === chat.id ? 'bg-green-50 border-r-4 border-green-500' : ''
                 }`}
-                onClick={() => setSelectedChat(chat)}
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3" onClick={() => setSelectedChat(chat)}>
                   <div className="relative">
                     <Avatar>
                       <AvatarImage src={chat.avatar_url} />
@@ -915,10 +958,44 @@ function App() {
                     </div>
                   </div>
                 </div>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
+                        <MoreVertical className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => archiveChat(chat.id, chat.is_group)}>
+                        <Archive className="w-4 h-4 mr-2" />
+                        Archive
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => deleteChat(chat.id, chat.is_group)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             ))}
           </div>
         </ScrollArea>
+        
+        {/* Logout Button at Bottom */}
+        <div className="p-3 border-t border-gray-200 bg-gray-50">
+          <Button
+            variant="outline"
+            onClick={logout}
+            className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       {/* Main Chat Area */}
@@ -1018,14 +1095,26 @@ function App() {
                         </div>
                       </div>
                       
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyToClipboard(message.content)}
-                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white shadow-md hover:bg-gray-50 w-8 h-8 p-0"
-                      >
-                        <Copy className="w-3 h-3 text-gray-600" />
-                      </Button>
+                      <div className="absolute -top-2 -right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(message.content)}
+                          className="bg-white shadow-md hover:bg-gray-50 w-8 h-8 p-0"
+                        >
+                          <Copy className="w-3 h-3 text-gray-600" />
+                        </Button>
+                        {message.sender_id === currentUser?.id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteMessage(message.id)}
+                            className="bg-white shadow-md hover:bg-red-50 w-8 h-8 p-0"
+                          >
+                            <Trash2 className="w-3 h-3 text-red-600" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1085,7 +1174,7 @@ function App() {
                       </Button>
                       
                       {showEmojiPicker && (
-                        <div className="absolute bottom-12 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
+                        <div className="emoji-picker absolute bottom-12 right-0 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
                           <div className="grid grid-cols-8 gap-1 w-64">
                             {['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠', '😈', '👿', '👹', '👺', '🤡', '💩', '👻', '💀', '☠️', '👽', '👾', '🤖', '🎃', '😺', '😸', '😹', '😻', '😼', '😽', '🙀', '😿', '😾', '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋', '🖖', '👏', '🙌', '🤝', '🙏', '✍️', '💪', '🦾', '🦿', '🦵', '🦶', '👂', '🦻', '👃', '🧠', '🫀', '🫁', '🦷', '🦴', '👀', '👁️', '👅', '👄', '💋'].map((emoji) => (
                               <button
