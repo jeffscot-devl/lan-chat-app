@@ -442,6 +442,8 @@ async def get_chat_messages(chat_id: int, is_group: bool = False, current_user: 
                     group_id=msg.group_id,
                     content=decrypted_content,
                     message_type=msg.message_type,
+                    file_id=msg.file_id,
+                    file_name=msg.file_name,
                     is_delivered=msg.is_delivered,
                     is_read=msg.is_read,
                     delivered_at=msg.delivered_at,
@@ -479,6 +481,8 @@ async def get_chat_messages(chat_id: int, is_group: bool = False, current_user: 
                     recipient_id=msg.recipient_id,
                     content=decrypted_content,
                     message_type=msg.message_type,
+                    file_id=msg.file_id,
+                    file_name=msg.file_name,
                     is_delivered=msg.is_delivered,
                     is_read=msg.is_read,
                     delivered_at=msg.delivered_at,
@@ -507,6 +511,8 @@ async def send_message(message_data: MessageCreate, current_user: User = Depends
             group_id=message_data.group_id,
             encrypted_content=encrypted_content,
             message_type=message_data.message_type,
+            file_id=message_data.file_id if message_data.message_type == "file" else None,
+            file_name=message_data.file_name if message_data.message_type == "file" else None,
             is_delivered=True,
             delivered_at=datetime.utcnow()
         )
@@ -557,6 +563,8 @@ async def send_message(message_data: MessageCreate, current_user: User = Depends
             recipient_id=message_data.recipient_id,
             encrypted_content=encrypted_content,
             message_type=message_data.message_type,
+            file_id=message_data.file_id if message_data.message_type == "file" else None,
+            file_name=message_data.file_name if message_data.message_type == "file" else None,
             is_delivered=True,
             delivered_at=datetime.utcnow()
         )
