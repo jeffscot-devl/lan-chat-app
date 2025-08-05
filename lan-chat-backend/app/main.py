@@ -748,6 +748,7 @@ async def upload_file(file: UploadFile = File(...), current_user: User = Depends
 async def download_file(file_id: str, current_user: User = Depends(get_current_user)):
     file_pattern = f"uploads/{file_id}*"
     import glob
+    import mimetypes
     matching_files = glob.glob(file_pattern)
     
     if not matching_files:
@@ -756,10 +757,14 @@ async def download_file(file_id: str, current_user: User = Depends(get_current_u
     file_path = matching_files[0]
     filename = os.path.basename(file_path)
     
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
+    
     return FileResponse(
         path=file_path,
         filename=filename,
-        media_type='application/octet-stream'
+        media_type=mime_type
     )
 
 @app.delete("/api/messages/{message_id}")

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu, MessageCircle, Trash2, Archive } from 'lucide-react';
+import { Send, Phone, Video, MoreVertical, Search, Paperclip, Smile, Mic, Users, LogOut, UserPlus, Shield, Check, CheckCheck, Copy, Upload, Download, X, Menu, MessageCircle, Trash2, Archive, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -947,32 +947,39 @@ function App() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-600 truncate">
+                      <p className="text-sm text-gray-600 truncate flex-1 mr-2">
                         {chat.last_message || 'No messages yet'}
                       </p>
-                      {!chat.is_group && !chat.is_online && chat.last_seen && (
-                        <span className="text-xs text-gray-400">
-                          {formatLastSeen(chat.last_seen)}
-                        </span>
-                      )}
+                      <div className="flex flex-col items-end space-y-1">
+                        {chat.last_message_time && (
+                          <span className="text-xs text-gray-500 font-medium">
+                            {formatTime(chat.last_message_time)}
+                          </span>
+                        )}
+                        {!chat.is_group && !chat.is_online && chat.last_seen && (
+                          <span className="text-xs text-gray-400">
+                            {formatLastSeen(chat.last_seen)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="w-6 h-6 p-0">
+                      <Button variant="ghost" size="sm" className="w-7 h-7 p-0 bg-white/80 hover:bg-white shadow-sm">
                         <MoreVertical className="w-3 h-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent align="end" className="w-40">
                       <DropdownMenuItem onClick={() => archiveChat(chat.id, chat.is_group)}>
                         <Archive className="w-4 h-4 mr-2" />
                         Archive
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => deleteChat(chat.id, chat.is_group)}
-                        className="text-red-600"
+                        className="text-red-600 focus:text-red-600"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete
@@ -1075,9 +1082,62 @@ function App() {
                         )}
                         
                         {message.message_type === 'file' ? (
-                          <div className="flex items-center space-x-2">
-                            <Download className="w-4 h-4" />
-                            <span className="text-sm">{message.content}</span>
+                          <div className="space-y-2">
+                            {message.content && (
+                              <>
+                                {/\.(jpg|jpeg|png|gif|webp)$/i.test(message.content) ? (
+                                  <div className="max-w-xs">
+                                    <img 
+                                      src={`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`}
+                                      alt={message.content}
+                                      className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank')}
+                                    />
+                                    <p className="text-xs mt-1 opacity-75">{message.content}</p>
+                                  </div>
+                                ) : /\.pdf$/i.test(message.content) ? (
+                                  <div className="border rounded-lg p-3 bg-gray-50 max-w-sm">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                      <FileText className="w-5 h-5 text-red-500" />
+                                      <span className="text-sm font-medium">{message.content}</span>
+                                    </div>
+                                    <iframe 
+                                      src={`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`}
+                                      className="w-full h-32 rounded border"
+                                      title={message.content}
+                                    />
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="mt-2 w-full"
+                                      onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank')}
+                                    >
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Open PDF
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg max-w-sm cursor-pointer hover:bg-gray-100 transition-colors"
+                                       onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank')}>
+                                    <Download className="w-4 h-4" />
+                                    <div className="flex-1">
+                                      <span className="text-sm font-medium">{message.content}</span>
+                                      <p className="text-xs text-gray-500">Click to download</p>
+                                    </div>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank');
+                                      }}
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </>
+                            )}
                           </div>
                         ) : (
                           <p className="text-sm leading-relaxed">{message.content}</p>
