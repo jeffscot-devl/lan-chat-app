@@ -38,6 +38,8 @@ interface Message {
   group_id?: number;
   content: string;
   message_type: string;
+  file_id?: string;
+  file_name?: string;
   is_delivered: boolean;
   is_read: boolean;
   delivered_at?: string;
@@ -1083,34 +1085,34 @@ function App() {
                         
                         {message.message_type === 'file' ? (
                           <div className="space-y-2">
-                            {message.content && (
+                            {message.file_name && message.file_id ? (
                               <>
-                                {/\.(jpg|jpeg|png|gif|webp)$/i.test(message.content) ? (
+                                {/\.(jpg|jpeg|png|gif|webp)$/i.test(message.file_name) ? (
                                   <div className="max-w-xs">
                                     <img 
-                                      src={`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`}
-                                      alt={message.content}
+                                      src={`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`}
+                                      alt={message.file_name}
                                       className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
-                                      onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank')}
+                                      onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`, '_blank')}
                                     />
-                                    <p className="text-xs mt-1 opacity-75">{message.content}</p>
+                                    <p className="text-xs mt-1 opacity-75">{message.file_name}</p>
                                   </div>
-                                ) : /\.pdf$/i.test(message.content) ? (
+                                ) : /\.pdf$/i.test(message.file_name) ? (
                                   <div className="border rounded-lg p-3 bg-gray-50 max-w-sm">
                                     <div className="flex items-center space-x-2 mb-2">
                                       <FileText className="w-5 h-5 text-red-500" />
-                                      <span className="text-sm font-medium">{message.content}</span>
+                                      <span className="text-sm font-medium">{message.file_name}</span>
                                     </div>
                                     <iframe 
-                                      src={`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`}
+                                      src={`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`}
                                       className="w-full h-32 rounded border"
-                                      title={message.content}
+                                      title={message.file_name}
                                     />
                                     <Button 
                                       size="sm" 
                                       variant="outline" 
                                       className="mt-2 w-full"
-                                      onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank')}
+                                      onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`, '_blank')}
                                     >
                                       <Download className="w-4 h-4 mr-2" />
                                       Open PDF
@@ -1118,10 +1120,10 @@ function App() {
                                   </div>
                                 ) : (
                                   <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg max-w-sm cursor-pointer hover:bg-gray-100 transition-colors"
-                                       onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank')}>
+                                       onClick={() => window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`, '_blank')}>
                                     <Download className="w-4 h-4" />
                                     <div className="flex-1">
-                                      <span className="text-sm font-medium">{message.content}</span>
+                                      <span className="text-sm font-medium">{message.file_name}</span>
                                       <p className="text-xs text-gray-500">Click to download</p>
                                     </div>
                                     <Button 
@@ -1129,7 +1131,7 @@ function App() {
                                       variant="outline"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.content.split(' ')[0]}`, '_blank');
+                                        window.open(`${import.meta.env.VITE_API_URL}/api/files/${message.file_id}`, '_blank');
                                       }}
                                     >
                                       <Download className="w-4 h-4" />
@@ -1137,6 +1139,14 @@ function App() {
                                   </div>
                                 )}
                               </>
+                            ) : message.content && (
+                              <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg max-w-sm">
+                                <Download className="w-4 h-4" />
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium">{message.content.replace('📎 ', '')}</span>
+                                  <p className="text-xs text-gray-500">Legacy file - click to download</p>
+                                </div>
+                              </div>
                             )}
                           </div>
                         ) : (
