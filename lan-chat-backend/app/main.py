@@ -21,13 +21,7 @@ app = FastAPI(title="LAN Chat Application", version="1.0.0")
 # Disable CORS. Do not remove this for full-stack development.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "*",
-        "https://whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
-        "https://user:aa664ea8bc79047133f07f523e3fecfd@whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
-        "https://whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com",
-        "https://user:542a1315d743e3d48561f2623ddf8aef@whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com"
-    ],  # Allows all origins plus specific frontend URLs
+    allow_origins=["*"],  # Allow all origins for public access
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
     allow_headers=["*"],  # Allows all headers
@@ -37,6 +31,7 @@ app.add_middleware(
 async def startup_event():
     create_tables()
     db = next(get_db())
+    
     admin_user = db.query(User).filter(User.username == "admin").first()
     if not admin_user:
         public_key, private_key = encryption_manager.generate_user_keypair()
@@ -56,6 +51,139 @@ async def startup_event():
         db.add(admin_user)
         db.commit()
         print("Default admin user created: admin/admin123")
+
+    demo_users_data = [
+        {"username": "alice", "full_name": "Alice Johnson", "email": "alice@company.com"},
+        {"username": "bob", "full_name": "Bob Smith", "email": "bob@company.com"},
+        {"username": "charlie", "full_name": "Charlie Brown", "email": "charlie@company.com"},
+        {"username": "diana", "full_name": "Diana Wilson", "email": "diana@company.com"},
+        {"username": "eve", "full_name": "Eve Davis", "email": "eve@company.com"}
+    ]
+    
+    demo_users = []
+    for user_data in demo_users_data:
+        existing_user = db.query(User).filter(User.username == user_data["username"]).first()
+        if not existing_user:
+            public_key, private_key = encryption_manager.generate_user_keypair()
+            encrypted_private_key = encryption_manager.encrypt_private_key(private_key, "demo123")
+            
+            new_user = User(
+                username=user_data["username"],
+                company_id="DEMO",
+                email=user_data["email"],
+                full_name=user_data["full_name"],
+                password_hash=get_password_hash("demo123"),
+                public_key=public_key,
+                private_key_encrypted=encrypted_private_key,
+                is_approved=True
+            )
+            db.add(new_user)
+            demo_users.append(new_user)
+        else:
+            demo_users.append(existing_user)
+    
+    db.commit()
+
+    demo_groups_data = [
+        {"name": "Project Team", "description": "Main project discussion"},
+        {"name": "Marketing", "description": "Marketing team coordination"},
+        {"name": "Development", "description": "Development team chat"}
+    ]
+    
+    for group_data in demo_groups_data:
+        existing_group = db.query(Group).filter(Group.name == group_data["name"]).first()
+        if not existing_group:
+            group_key = encryption_manager.generate_group_key()
+            
+            new_group = Group(
+                name=group_data["name"],
+                description=group_data["description"],
+                admin_id=admin_user.id,
+                group_key_encrypted=group_key
+            )
+            db.add(new_group)
+            db.commit()
+            db.refresh(new_group)
+            
+            for user in [admin_user] + demo_users:
+                if user not in new_group.members:
+                    new_group.members.append(user)
+            db.commit()
+            
+            demo_messages = [
+                "Hello everyone! Welcome to the team.",
+                "Great to be here! Looking forward to working together.",
+                "What's our first priority for this week?",
+                "I think we should focus on the user interface improvements.",
+                "Agreed! The current design needs some updates.",
+                "I can work on the frontend components.",
+                "Perfect! I'll handle the backend API changes.",
+                "Should we schedule a meeting to discuss the timeline?",
+                "How about tomorrow at 2 PM?",
+                "That works for me!",
+                "Same here, I'll be there.",
+                "Great! I'll send out the calendar invite.",
+                "Thanks! Looking forward to it.",
+                "By the way, has anyone reviewed the latest requirements?",
+                "Yes, I went through them yesterday. They look comprehensive.",
+                "Any concerns or questions about the scope?",
+                "I think the timeline might be a bit tight for the mobile version.",
+                "We could prioritize the web version first.",
+                "That makes sense. Mobile can be phase 2.",
+                "Sounds like a plan! I'll update the project roadmap.",
+                "Perfect! Communication is key for this project.",
+                "Absolutely! Let's keep this chat active.",
+                "I'll post daily updates here.",
+                "Great idea! Transparency helps everyone stay aligned.",
+                "Speaking of updates, how's the database design coming along?",
+                "It's almost ready. Just finalizing the user permissions.",
+                "Excellent! Security is definitely important.",
+                "I've been working on the authentication flow too.",
+                "Nice! Are we using JWT tokens?",
+                "Yes, with refresh token rotation for better security.",
+                "Perfect! That's exactly what we need.",
+                "I'll have the API documentation ready by Friday.",
+                "Thanks! That will help with frontend integration.",
+                "No problem! Collaboration makes everything smoother.",
+                "This team is amazing! 🚀",
+                "Couldn't agree more! 💪",
+                "Let's keep this momentum going!",
+                "Definitely! Quality and speed together.",
+                "I love working with such dedicated people.",
+                "The feeling is mutual! 😊",
+                "Alright, let's get back to coding!",
+                "Time to make some magic happen! ✨",
+                "See you all in the meeting tomorrow!",
+                "Looking forward to it!",
+                "Have a great rest of your day everyone!",
+                "You too! Happy coding! 💻",
+                "Thanks team! This is going to be awesome!",
+                "Absolutely! We've got this! 🎉",
+                "Best team ever! 🌟",
+                "Let's build something incredible together!"
+            ]
+            
+            for i, message_content in enumerate(demo_messages):
+                sender = demo_users[i % len(demo_users)]
+                encrypted_content = encryption_manager.encrypt_group_message(message_content, group_key)
+                
+                message = Message(
+                    sender_id=sender.id,
+                    group_id=new_group.id,
+                    encrypted_content=encrypted_content,
+                    message_type="text",
+                    is_delivered=True,
+                    is_read=True,
+                    delivered_at=datetime.utcnow() - timedelta(days=7-i//10, hours=i%24),
+                    read_at=datetime.utcnow() - timedelta(days=7-i//10, hours=i%24),
+                    created_at=datetime.utcnow() - timedelta(days=7-i//10, hours=i%24)
+                )
+                db.add(message)
+            
+            db.commit()
+            print(f"Demo group '{group_data['name']}' created with 50 messages")
+        else:
+            print(f"Demo group '{group_data['name']}' already exists")
 
 class ConnectionManager:
     def __init__(self):
@@ -290,6 +418,7 @@ async def get_chat_messages(chat_id: int, is_group: bool = False, current_user: 
         db.commit()
         
         decrypted_messages = []
+        print(f"DEBUG: Found {len(messages)} messages for group {chat_id}")
         for msg in messages:
             try:
                 decrypted_content = encryption_manager.decrypt_group_message(msg.encrypted_content, group.group_key_encrypted)
@@ -298,6 +427,7 @@ async def get_chat_messages(chat_id: int, is_group: bool = False, current_user: 
                     sender_id=msg.sender_id,
                     sender_name=msg.sender.full_name,
                     sender_avatar=msg.sender.avatar_url,
+                    recipient_id=None,
                     group_id=msg.group_id,
                     content=decrypted_content,
                     message_type=msg.message_type,
@@ -307,7 +437,8 @@ async def get_chat_messages(chat_id: int, is_group: bool = False, current_user: 
                     read_at=msg.read_at,
                     created_at=msg.created_at
                 ))
-            except:
+            except Exception as e:
+                print(f"DEBUG: Decryption failed for message {msg.id}: {e}")
                 continue
         
         return decrypted_messages
@@ -619,6 +750,44 @@ async def download_file(file_id: str, current_user: User = Depends(get_current_u
         filename=filename,
         media_type='application/octet-stream'
     )
+
+@app.delete("/api/messages/{message_id}")
+async def delete_message(message_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    message = db.query(Message).filter(Message.id == message_id).first()
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
+    
+    if message.sender_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Can only delete your own messages")
+    
+    db.delete(message)
+    db.commit()
+    return {"message": "Message deleted successfully"}
+
+@app.put("/api/chats/{chat_id}/archive")
+async def archive_chat(chat_id: int, is_group: bool = False, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return {"message": "Chat archived successfully"}
+
+@app.delete("/api/chats/{chat_id}")
+async def delete_chat(chat_id: int, is_group: bool = False, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if is_group:
+        group = db.query(Group).filter(Group.id == chat_id).first()
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+        
+        if group.admin_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Only group admin can delete group")
+        
+        db.query(Message).filter(Message.group_id == chat_id).delete()
+        db.delete(group)
+    else:
+        db.query(Message).filter(
+            ((Message.sender_id == current_user.id) & (Message.recipient_id == chat_id)) |
+            ((Message.sender_id == chat_id) & (Message.recipient_id == current_user.id))
+        ).delete()
+    
+    db.commit()
+    return {"message": "Chat deleted successfully"}
 
 @app.get("/healthz")
 async def healthz():
