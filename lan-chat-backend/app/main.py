@@ -21,7 +21,18 @@ app = FastAPI(title="LAN Chat Application", version="1.0.0")
 # Disable CORS. Do not remove this for full-stack development.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for public access
+    allow_origins=[
+        "*",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "https://whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
+        "https://user:aa664ea8bc79047133f07f523e3fecfd@whatsapp-clone-app-tunnel-xed1t5va.devinapps.com",
+        "https://whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com",
+        "https://user:542a1315d743e3d48561f2623ddf8aef@whatsapp-clone-app-tunnel-ppaexfhk.devinapps.com",
+        "https://user:1ef021e101e682bbc042edcfe5c33fc4@whatsapp-clone-app-tunnel-jmpvez7f.devinapps.com",
+        "https://whatsapp-clone-app-tunnel-5k08ynlw.devinapps.com",
+        "https://user:d5a35ba169cc8f9ebdd2c21c1af58f28@whatsapp-clone-app-tunnel-5k08ynlw.devinapps.com"
+    ],  # Allow all origins plus specific frontend URLs
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods
     allow_headers=["*"],  # Allows all headers
